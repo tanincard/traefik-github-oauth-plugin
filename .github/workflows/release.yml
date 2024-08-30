@@ -32,6 +32,13 @@ jobs:
           
       - name: Checkout repository
         uses: actions/checkout@v4
+        
+      - name: Release
+        id: release
+        uses: google-github-actions/release-please-action@v3
+        with:
+          release-type: go
+          package-name: traefik-github-oauth-plugin
 
       # Install the cosign tool except on PR
       # https://github.com/sigstore/cosign-installer
