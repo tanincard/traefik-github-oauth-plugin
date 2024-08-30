@@ -4,9 +4,9 @@ on:
   # workflow_dispatch: 
   release:
       types: [published]
-  push:
-    branches:
-      - main
+  # push:
+  #   branches:
+  #     - main
 
 env:
   REGISTRY: "ghcr.io"
@@ -24,7 +24,7 @@ jobs:
     steps:
           
       - name: Checkout repository
-        if: ${{ steps.release.outputs.release_created }}
+        # if: ${{ steps.release.outputs.release_created }}
         uses: actions/checkout@v4
         with:
           ref: ${{ steps.release.outputs.tag_name }}
@@ -38,7 +38,7 @@ jobs:
       #     package-name: traefik-github-oauth-plugin
 
       - name: Setup Go
-        if: ${{ steps.release.outputs.release_created }}
+        # if: ${{ steps.release.outputs.release_created }}
         uses: actions/setup-go@v5
         with:
           go-version: 1.19
@@ -46,7 +46,7 @@ jobs:
       # Install the cosign tool except on PR
       # https://github.com/sigstore/cosign-installer
       - name: Install cosign
-        if: ${{ steps.release.outputs.release_created }}
+        # if: ${{ steps.release.outputs.release_created }}
         uses: sigstore/cosign-installer@v3.5.0
         with:
           cosign-release: 'v2.2.4'
@@ -55,13 +55,13 @@ jobs:
       # multi-platform images and export cache
       # https://github.com/docker/setup-buildx-action
       - name: Set up Docker Buildx
-        if: ${{ steps.release.outputs.release_created }}
+        # if: ${{ steps.release.outputs.release_created }}
         uses: docker/setup-buildx-action@v3.3.0 # v3.0.0
 
       # Extract metadata (tags, labels) for Docker
       # https://github.com/docker/metadata-action
       - name: Extract Docker metadata
-        if: ${{ steps.release.outputs.release_created }}
+        # if: ${{ steps.release.outputs.release_created }}
         id: meta
         uses: docker/metadata-action@v5.5.1
         with:
@@ -70,7 +70,7 @@ jobs:
       # Login against a Docker registry except on PR
       # https://github.com/docker/login-action
       - name: Log into registry ${{ env.REGISTRY }}
-        if: ${{ steps.release.outputs.release_created }}
+        # if: ${{ steps.release.outputs.release_created }}
         uses: docker/login-action@v3.2.0
         with:
           registry: ${{ env.REGISTRY }}
@@ -78,13 +78,13 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up QEMU
-        if: ${{ steps.release.outputs.release_created }}
+        # if: ${{ steps.release.outputs.release_created }}
         uses: docker/setup-qemu-action@v3.2.0
 
       # Build and push Docker image with Buildx (don't push on PR)
       # https://github.com/docker/build-push-action
       - name: Build and push Docker image
-        if: ${{ steps.release.outputs.release_created }}
+        # if: ${{ steps.release.outputs.release_created }}
         id: build-and-push
         uses: docker/build-push-action@v5.3.0
         with:
@@ -97,7 +97,7 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           
       - name: Sign the published Docker image
-        if: ${{ steps.release.outputs.release_created }}
+        # if: ${{ steps.release.outputs.release_created }}
         env:
           # https://docs.github.com/en/actions/security-guides/security-hardening-for-github-actions#using-an-intermediate-environment-variable
           TAGS: ${{ steps.meta.outputs.tags }}
