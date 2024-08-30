@@ -91,7 +91,7 @@ jobs:
         uses: docker/setup-qemu-action@v3.2.0
 
       - name: Go Release
-        if: ${{ steps.release.outputs.release_created }}
+        # if: ${{ steps.release.outputs.release_created }}
         uses: goreleaser/goreleaser-action@v6.0.0
         env:
           GITHUB_TOKEN: ${{ github.token }}
