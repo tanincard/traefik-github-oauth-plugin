@@ -4,10 +4,6 @@ on:
   push:
     branches:
       - main
-    
-  # push:
-  #   branches:
-  #     - main
 
 env:
   REGISTRY: "ghcr.io"
@@ -50,9 +46,9 @@ jobs:
         if: ${{ steps.release.outputs.release_created }}
         uses: docker/setup-qemu-action@v2
 
-      - name: Log into registry ${{ env.REGISTRY }}
+      - name: Login to Docker Hub
         if: ${{ steps.release.outputs.release_created }}
-        uses: docker/login-action@v3.2.0
+        uses: docker/login-action@v2
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
@@ -68,10 +64,10 @@ jobs:
           version: latest
           args: release
 
-      # - name: Replace The Relative Path In The README.md
-      #   if: ${{ steps.release.outputs.release_created }}
-      #   run: |
-      #     sed -E 's#(\[[^]]*\])\(\.\/([^)]+)\)#\1(https://github.com/${{ github.repository }}/raw/${{ steps.release.outputs.tag_name }}/\2)#g' README.md > docker.README.md
+      - name: Replace The Relative Path In The README.md
+        if: ${{ steps.release.outputs.release_created }}
+        run: |
+          sed -E 's#(\[[^]]*\])\(\.\/([^)]+)\)#\1(https://github.com/${{ github.repository }}/raw/${{ steps.release.outputs.tag_name }}/\2)#g' README.md > docker.README.md
 
       # - name: Update Docker Images Description
       #   if: ${{ steps.release.outputs.release_created }}
@@ -82,4 +78,4 @@ jobs:
       #     repository: muxiu1997/traefik-github-oauth-server
       #     short-description: server for traefik-github-oauth-plugin
       #     readme-filepath: docker.README.md
-      # # endregion Docker
+      # endregion Docker
