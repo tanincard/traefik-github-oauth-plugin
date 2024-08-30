@@ -1,9 +1,9 @@
 name: Release
 
 on:
-  # workflow_dispatch: 
-  release:
-      types: [published]
+  workflow_dispatch: 
+  # release:
+  #     types: [published]
   # push:
   #   branches:
   #     - main
@@ -26,9 +26,9 @@ jobs:
       - name: Checkout repository
         # if: ${{ steps.release.outputs.release_created }}
         uses: actions/checkout@v4
-        with:
-          ref: ${{ steps.release.outputs.tag_name }}
-          fetch-depth: 0
+        # with:
+          # ref: ${{ steps.release.outputs.tag_name }}
+          # fetch-depth: 0
         
       # - name: Release
       #   id: release
