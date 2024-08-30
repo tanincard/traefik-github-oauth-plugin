@@ -5,6 +5,12 @@ on:
     branches:
       - main
 
+env:
+  REGISTRY: "ghcr.io"
+  IMAGE_NAME: ${{ github.repository }}
+  REGISTRY_USERNAME: ${{ github.actor }}
+  REGISTRY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+  
 jobs:
   release:
     name: Release
@@ -13,33 +19,53 @@ jobs:
       pull-requests: write
     runs-on: ubuntu-latest
     steps:
-      - name: Release
-        id: release
-        uses: google-github-actions/release-please-action@v3
+          
+      - name: Checkout repository
+        if: ${{ steps.release.outputs.release_created }}
+        uses: actions/checkout@v4
         with:
-          release-type: go
-          package-name: traefik-github-oauth-plugin
+          ref: ${{ steps.release.outputs.tag_name }}
+          fetch-depth: 0
+        
+      # - name: Release
+      #   id: release
+      #   uses: google-github-actions/release-please-action@v3
+      #   with:
+      #     release-type: go
+      #     package-name: traefik-github-oauth-plugin
 
       - name: Setup Go
         if: ${{ steps.release.outputs.release_created }}
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v5
         with:
           go-version: 1.19
 
-      - name: Checkout
+      # Install the cosign tool except on PR
+      # https://github.com/sigstore/cosign-installer
+      - name: Install cosign
         if: ${{ steps.release.outputs.release_created }}
-        uses: actions/checkout@v3
+        uses: sigstore/cosign-installer@v3.5.0
         with:
-          ref: ${{ steps.release.outputs.tag_name }}
+          cosign-release: 'v2.2.4'
 
+      # Set up BuildKit Docker container builder to be able to build
+      # multi-platform images and export cache
+      # https://github.com/docker/setup-buildx-action
       - name: Set up Docker Buildx
         if: ${{ steps.release.outputs.release_created }}
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3.3.0 # v3.0.0
 
-      - name: Set up QEMU
+      # Extract metadata (tags, labels) for Docker
+      # https://github.com/docker/metadata-action
+      - name: Extract Docker metadata
         if: ${{ steps.release.outputs.release_created }}
-        uses: docker/setup-qemu-action@v2
+        id: meta
+        uses: docker/metadata-action@v5.5.1
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
 
+      # Login against a Docker registry except on PR
+      # https://github.com/docker/login-action
       - name: Log into registry ${{ env.REGISTRY }}
         if: ${{ steps.release.outputs.release_created }}
         uses: docker/login-action@v3.2.0
@@ -48,28 +74,58 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Go Release
+      - name: Set up QEMU
         if: ${{ steps.release.outputs.release_created }}
-        uses: goreleaser/goreleaser-action@v4
+        uses: docker/setup-qemu-action@v3.2.0
+
+      # Build and push Docker image with Buildx (don't push on PR)
+      # https://github.com/docker/build-push-action
+      - name: Build and push Docker image
+        if: ${{ steps.release.outputs.release_created }}
+        id: build-and-push
+        uses: docker/build-push-action@v5.3.0
+        with:
+          context: .
+          push: ${{ steps.release.outputs.release_created }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: Sign the published Docker image
+        if: ${{ steps.release.outputs.release_created }}
         env:
-          GITHUB_TOKEN: ${{ github.token }}
-        with:
-          distribution: goreleaser
-          version: latest
-          args: release
+          # https://docs.github.com/en/actions/security-guides/security-hardening-for-github-actions#using-an-intermediate-environment-variable
+          TAGS: ${{ steps.meta.outputs.tags }}
+          DIGEST: ${{ steps.build-and-push.outputs.digest }}
+        # This step uses the identity token to provision an ephemeral certificate
+        # against the sigstore community Fulcio instance.
+        run: echo "${TAGS}" | xargs -I {} cosign sign --yes {}@${DIGEST}
 
-      - name: Replace The Relative Path In The README.md
-        if: ${{ steps.release.outputs.release_created }}
-        run: |
-          sed -E 's#(\[[^]]*\])\(\.\/([^)]+)\)#\1(https://github.com/${{ github.repository }}/raw/${{ steps.release.outputs.tag_name }}/\2)#g' README.md > docker.README.md
+      # - name: Go Release
+      #   if: ${{ steps.release.outputs.release_created }}
+      #   uses: goreleaser/goreleaser-action@v6.0.0
+      #   env:
+      #     GITHUB_TOKEN: ${{ github.token }}
+      #     github-token: ${{ secrets.GITHUB_TOKEN }}
+      #   with:
+      #     distribution: goreleaser
+      #     version: latest
+      #     args: release --clean
 
-      - name: Update Docker Images Description
-        if: ${{ steps.release.outputs.release_created }}
-        uses: peter-evans/dockerhub-description@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-          repository: tanincard/traefik-github-oauth-server
-          short-description: server for traefik-github-oauth-plugin
-          readme-filepath: docker.README.md
+      # - name: Replace The Relative Path In The README.md
+      #   if: ${{ steps.release.outputs.release_created }}
+      #   run: |
+      #     sed -E 's#(\[[^]]*\])\(\.\/([^)]+)\)#\1(https://github.com/${{ github.repository }}/raw/${{ steps.release.outputs.tag_name }}/\2)#g' README.md > docker.README.md
+
+      # - name: Update Docker Images Description
+      #   if: ${{ steps.release.outputs.release_created }}
+      #   uses: peter-evans/dockerhub-description@v3
+      #   with:
+      #     username: ${{ secrets.DOCKERHUB_USERNAME }}
+      #     password: ${{ secrets.DOCKERHUB_TOKEN }}
+      #     repository: tanincard/traefik-github-oauth-server
+      #     short-description: server for traefik-github-oauth-plugin
+      #     readme-filepath: docker.README.md
       # endregion Docker
