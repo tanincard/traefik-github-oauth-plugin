@@ -1,12 +1,12 @@
 name: Release
 
 on:
-  workflow_dispatch: 
-  # release:
-  #     types: [created]
-  # push:
-  #   branches:
-  #     - main
+  # workflow_dispatch: 
+  release:
+      types: [published]
+  push:
+    branches:
+      - main
 
 env:
   REGISTRY: "ghcr.io"
