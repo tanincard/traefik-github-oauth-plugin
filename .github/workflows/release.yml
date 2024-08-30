@@ -98,10 +98,6 @@ jobs:
         uses: docker/build-push-action@v5.3.0
         with:
           context: .
-          build-args: |
-            NOVA_CI_USERNAME=${{ secrets.NOVA_USERNAME }}
-            NOVA_CI_PASSWORD=${{ secrets.NOVA_CI_PASSWORD }}
-            NOVA_CI_LICENSE_KEY=${{ secrets.NOVA_LICENSE_KEY }}
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
