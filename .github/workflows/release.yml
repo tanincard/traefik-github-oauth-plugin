@@ -25,6 +25,7 @@ jobs:
         with:
           release-type: go
           package-name: traefik-github-oauth-plugin
+          snapshot: true
 
       - name: Setup Go
         if: ${{ steps.release.outputs.release_created }}
