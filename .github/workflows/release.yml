@@ -40,12 +40,13 @@ jobs:
         if: ${{ steps.release.outputs.release_created }}
         uses: docker/setup-qemu-action@v2
 
-      - name: Login to Docker Hub
+      - name: Log into registry ${{ env.REGISTRY }}
         if: ${{ steps.release.outputs.release_created }}
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3.2.0
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Go Release
         if: ${{ steps.release.outputs.release_created }}
@@ -68,7 +69,7 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-          repository: muxiu1997/traefik-github-oauth-server
+          repository: tanincard/traefik-github-oauth-server
           short-description: server for traefik-github-oauth-plugin
           readme-filepath: docker.README.md
       # endregion Docker
